@@ -61,7 +61,6 @@ import android.view.ViewGroup;
 import android.view.ViewRootImpl;
 import android.view.WindowManager;
 import android.view.GestureDetector;
-import android.view.*;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
@@ -82,14 +81,6 @@ public class NavigationBarView extends LinearLayout {
 
     // slippery nav bar when everything is disabled, e.g. during setup
     final static boolean SLIPPERY_WHEN_DISABLED = true;
-
-    private OnLongClickListener mPowerListener = new View.OnLongClickListener() {
-        @Override
-        public boolean onLongClick(View v) {
-            ((KeyButtonView) v).sendEvent(KeyEvent.KEYCODE_POWER, KeyEvent.FLAG_LONG_PRESS);
-            return true;
-        }
-    };
 
     final Display mDisplay;
     View mCurrentView = null;
@@ -800,11 +791,6 @@ public class NavigationBarView extends LinearLayout {
         View homeView = mCurrentView.findViewWithTag(NavbarEditor.NAVBAR_HOME);
         if (homeView != null) {
             homeView.setOnTouchListener(mHomeSearchActionListener);
-        }
-        View powerView = mCurrentView.findViewWithTag(NavbarEditor.NAVBAR_POWER);
-        if (powerView != null) {
-            powerView.setLongClickable(true);
-            powerView.setOnLongClickListener(mPowerListener);
         }
     }
 
