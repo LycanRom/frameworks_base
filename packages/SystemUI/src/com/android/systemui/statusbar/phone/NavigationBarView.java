@@ -25,7 +25,6 @@ import android.app.ActivityManagerNative;
 import android.app.StatusBarManager;
 import android.content.ContentResolver;
 import android.content.BroadcastReceiver;
-import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -105,13 +104,6 @@ public class NavigationBarView extends LinearLayout {
     private SettingsObserver mSettingsObserver;
     private GestureDetector mDoubleTapGesture;
     private boolean mDoubleTapToSleep;
-    private boolean mShowDpadArrowKeys;
-
-    // Visibility of R.id.one view prior to swapping it for a left arrow key
-    public int mSlotOneVisibility = -1;
-
-    // Visibility of R.id.six view prior to swapping it for a right arrow key
-    public int mSlotSixVisibility = -1;
 
     // workaround for LayoutTransitions leaving the nav buttons in a weird state (bug 5549288)
     final static boolean WORKAROUND_INVALID_LAYOUT = true;
@@ -230,6 +222,8 @@ public class NavigationBarView extends LinearLayout {
         mNavBarReceiver = new NavBarReceiver();
         getContext().registerReceiver(mNavBarReceiver, new IntentFilter(NAVBAR_EDIT_ACTION));
 
+        mSettingsObserver = new SettingsObserver(new Handler());
+
         mDoubleTapGesture = new GestureDetector(mContext,
                 new GestureDetector.SimpleOnGestureListener() {
             @Override
@@ -239,8 +233,6 @@ public class NavigationBarView extends LinearLayout {
                 return true;
             }
         });
-
-        mSettingsObserver = new SettingsObserver(new Handler());
     }
 
     @Override
@@ -251,13 +243,6 @@ public class NavigationBarView extends LinearLayout {
         if (root != null) {
             root.setDrawDuringWindowsAnimating(true);
         }
-        mSettingsObserver.observe();
-    }
-
-    @Override
-    protected void onDetachedFromWindow() {
-        super.onDetachedFromWindow();
-        mSettingsObserver.unobserve();
     }
 
     public BarTransitions getBarTransitions() {
@@ -367,40 +352,13 @@ public class NavigationBarView extends LinearLayout {
 
         ((ImageView)getRecentsButton()).setImageDrawable(mVertical ? mRecentLandIcon : mRecentIcon);
 
-        final boolean showImeButton = ((hints & StatusBarManager.NAVIGATION_HINT_IME_SHOWN) != 0)
-                                && !mShowDpadArrowKeys;
+        final boolean showImeButton = ((hints & StatusBarManager.NAVIGATION_HINT_IME_SHOWN) != 0);
         getImeSwitchButton().setVisibility(showImeButton ? View.VISIBLE : View.INVISIBLE);
+        // Update menu button in case the IME state has changed.
+        setMenuVisibility(mShowMenu, true);
 
 
         setDisabledFlags(mDisabledFlags, true);
-
-        if (mShowDpadArrowKeys) { // overrides IME button
-            final boolean showingIme = ((mNavigationIconHints
-                    & StatusBarManager.NAVIGATION_HINT_BACK_ALT) != 0);
-
-            setVisibleOrGone(getCurrentView().findViewById(R.id.dpad_left), showingIme);
-            setVisibleOrGone(getCurrentView().findViewById(R.id.dpad_right), showingIme);
-
-            View one = getCurrentView().findViewById(mVertical ? R.id.six : R.id.one);
-            View six = getCurrentView().findViewById(mVertical ? R.id.one : R.id.six);
-            if (showingIme) {
-                mSlotOneVisibility = one.getVisibility();
-                mSlotSixVisibility = six.getVisibility();
-                setVisibleOrGone(one, false);
-                setVisibleOrGone(six, false);
-            } else {
-                if (mSlotOneVisibility != -1) {
-                    one.setVisibility(mSlotOneVisibility);
-                    mSlotOneVisibility = -1;
-                }
-                if (mSlotSixVisibility != -1) {
-                    six.setVisibility(mSlotSixVisibility);
-                    mSlotSixVisibility = -1;
-                }
-            }
-        }
-        // Update menu button in case the IME state has changed.
-        setMenuVisibility(mShowMenu, true);
     }
 
     public void setDisabledFlags(int disabledFlags) {
@@ -781,16 +739,8 @@ public class NavigationBarView extends LinearLayout {
 
     private void setButtonWithTagVisibility(Object tag, boolean visible) {
         View findView = mCurrentView.findViewWithTag(tag);
-        if (findView == null) {
-            return;
-        }
-        int visibility = visible ? View.VISIBLE : View.INVISIBLE;
-        if (mSlotOneVisibility != -1 && findView.getId() == R.id.one) {
-            mSlotOneVisibility = visibility;
-        } else if (mSlotSixVisibility != -1 && findView.getId() == R.id.six) {
-            mSlotSixVisibility = visibility;
-        } else {
-            findView.setVisibility(visibility);
+        if (findView != null) {
+            findView.setVisibility(visible ? View.VISIBLE : View.INVISIBLE);
         }
     }
 
@@ -834,11 +784,13 @@ public class NavigationBarView extends LinearLayout {
             super(handler);
         }
 
-        void observe() {
-            ContentResolver resolver = getContext().getContentResolver();
+        @Override
+        protected void observe() {
+            super.observe();
+            ContentResolver resolver = mContext.getContentResolver();
             resolver.registerContentObserver(
-                    Settings.System.getUriFor(Settings.System.NAVIGATION_BAR_MENU_ARROW_KEYS),
-                    false, this);
+                    Settings.System.getUriFor(Settings.System.DOUBLE_TAP_SLEEP_NAVBAR),
+                    false, this, UserHandle.USER_ALL);
 
             // intialize mModlockDisabled
             onChange(false);
@@ -849,16 +801,9 @@ public class NavigationBarView extends LinearLayout {
         }
 
         @Override
-        public void onChange(boolean selfChange) {
-            mShowDpadArrowKeys = Settings.System.getInt(mContext.getContentResolver(),
-                    Settings.System.NAVIGATION_BAR_MENU_ARROW_KEYS, 0) != 0;
-            // reset saved side button visibilities
-            for (int i = 0; i < mSideButtonVisibilities.length; i++) {
-                for (int j = 0; j < mSideButtonVisibilities[i].length; j++) {
-                    mSideButtonVisibilities[i][j] = -1;
-                }
-            }
-            setNavigationIconHints(mNavigationIconHints, true);
+        protected void update() {
+            mDoubleTapToSleep = Settings.System.getIntForUser(mContext.getContentResolver(),
+                    Settings.System.DOUBLE_TAP_SLEEP_NAVBAR, 0, UserHandle.USER_CURRENT) != 0;
         }
     }
 }
