@@ -108,17 +108,6 @@
     <string name="lockscreen_choose_action_title">Choose action</string>
     <string name="lockscreen_none_target">None</string>
 
-    <!-- Dialog title for navigation bar button selection -->
-    <string name="navbar_dialog_title">Choose action to assign</string>
-    <string name="navbar_home_button">Home button</string>
-    <string name="navbar_recent_button">Recent button</string>
-    <string name="navbar_search_button">Search button</string>
-    <string name="navbar_back_button">Back button</string>
-    <string name="navbar_empty_button">Empty button</string>
-    <string name="navbar_menu_conditional_button">Menu (autoHide) button</string>
-    <string name="navbar_menu_always_button">Menu (alwaysShow) button</string>
-    <string name="navbar_menu_big_button">Menu button</string>
-
     <!-- App circle sidebar -->
     <string name="app_float_maximize_item_title">Maximize</string>
     <string name="app_float_item_title">Float view</string>
