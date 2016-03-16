@@ -17,6 +17,7 @@
 package com.android.internal.statusbar;
 
 import android.os.Bundle;
+import android.content.Intent;
 import android.service.notification.StatusBarNotification;
 
 import com.android.internal.statusbar.StatusBarIcon;
@@ -82,5 +83,6 @@ oneway interface IStatusBar
     void onCameraLaunchGestureDetected(int source);
 
     void setAutoRotate(boolean enabled);
+    void showCustomIntentAfterKeyguard(inout Intent intent);
 }
 
