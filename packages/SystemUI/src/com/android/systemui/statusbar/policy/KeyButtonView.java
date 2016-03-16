@@ -73,7 +73,6 @@ public class KeyButtonView extends ImageView {
     private boolean mInEditMode;
     private AudioManager mAudioManager;
     private boolean mGestureAborted;
-    private boolean mShouldTintIcons = true;
 
     private boolean mPerformedLongClick;
 
@@ -125,8 +124,6 @@ public class KeyButtonView extends ImageView {
         mAudioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
         setBackground(new KeyButtonRipple(context, this));
 
-        SettingsObserver settingsObserver = new SettingsObserver(new Handler());
-        settingsObserver.observe();
     }
 
     @Override
@@ -299,14 +296,6 @@ public class KeyButtonView extends ImageView {
                 mPerformedLongClick = false;
                 break;
         }
-
-        ViewParent parent = getParent();
-        while (parent != null && !(parent instanceof NavigationBarView)) {
-            parent = parent.getParent();
-        }
-        if (parent != null) {
-            ((NavigationBarView) parent).onNavButtonTouched();
-        }
         return true;
     }
 
@@ -340,40 +329,6 @@ public class KeyButtonView extends ImageView {
         mGestureAborted = true;
     }
 
-    public void setTint(boolean tint) {
-        setColorFilter(null);
-        if (tint) {
-            int color = Settings.System.getInt(mContext.getContentResolver(),
-                    Settings.System.NAVIGATION_BAR_TINT, -1);
-            if (color != -1) {
-                setColorFilter(color);
-            }
-        }
-        mShouldTintIcons = tint;
-    }
-
-    class SettingsObserver extends ContentObserver {
-        SettingsObserver(Handler handler) {
-            super(handler);
-        }
- 
-        void observe() {
-            ContentResolver resolver = mContext.getContentResolver();
-            resolver.registerContentObserver(Settings.System.getUriFor(
-                    Settings.System.NAVIGATION_BAR_TINT), false, this);
-            updateSettings();
-        }
-
-        @Override
-        public void onChange(boolean selfChange) {
-            updateSettings();
-        }
-    }
-
-    protected void updateSettings() {
-        setTint(mShouldTintIcons);
-        invalidate();
-    }
 }
 
 
