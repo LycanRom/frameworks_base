@@ -84,5 +84,6 @@ oneway interface IStatusBar
 
     void setAutoRotate(boolean enabled);
     void showCustomIntentAfterKeyguard(inout Intent intent);
+    void screenPinningStateChanged(boolean enabled);
 }
 

@@ -18,6 +18,8 @@ package com.android.systemui.statusbar.phone;
 
 import android.animation.LayoutTransition;
 import android.animation.LayoutTransition.TransitionListener;
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
 import android.animation.ObjectAnimator;
 import android.animation.TimeInterpolator;
 import android.animation.ValueAnimator;
@@ -31,6 +33,7 @@ import android.content.IntentFilter;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.database.ContentObserver;
+import android.graphics.Bitmap;
 import android.graphics.Point;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
@@ -60,6 +63,8 @@ import android.view.ViewGroup;
 import android.view.ViewRootImpl;
 import android.view.WindowManager;
 import android.view.GestureDetector;
+import android.view.animation.AccelerateInterpolator;
+import android.view.animation.Animation;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
@@ -80,6 +85,9 @@ import java.util.ArrayList;
 public class NavigationBarView extends BaseNavigationBar {
     final static boolean DEBUG = false;
     final static String TAG = "PhoneStatusBar/NavigationBarView";
+    final static float PULSE_ALPHA_FADE = 0.3f; // take bar alpha low so keys are vaguely visible but not intrusive during Pulse
+    final static int PULSE_FADE_OUT_DURATION = 250;
+    final static int PULSE_FADE_IN_DURATION = 200;
 
     int mBarSize;
     boolean mShowMenu;
@@ -341,35 +349,6 @@ public class NavigationBarView extends BaseNavigationBar {
         }
     }
 
-    public void setLayoutTransitionsEnabled(boolean enabled) {
-        super.setLayoutTransitionsEnabled(enabled);
-        updateLayoutTransitionsEnabled();
-    }
-
-    public void setWakeAndUnlocking(boolean wakeAndUnlocking) {
-        super.setWakeAndUnlocking(wakeAndUnlocking);
-        updateLayoutTransitionsEnabled();
-    }
-
-    private void updateLayoutTransitionsEnabled() {
-        boolean enabled = !mWakeAndUnlocking && mLayoutTransitionsEnabled;
-        ViewGroup navButtons = (ViewGroup) mCurrentView.findViewById(R.id.nav_buttons);
-        LayoutTransition lt = navButtons.getLayoutTransition();
-        if (lt != null) {
-            if (enabled) {
-                lt.enableTransitionType(LayoutTransition.APPEARING);
-                lt.enableTransitionType(LayoutTransition.DISAPPEARING);
-                lt.enableTransitionType(LayoutTransition.CHANGE_APPEARING);
-                lt.enableTransitionType(LayoutTransition.CHANGE_DISAPPEARING);
-            } else {
-                lt.disableTransitionType(LayoutTransition.APPEARING);
-                lt.disableTransitionType(LayoutTransition.DISAPPEARING);
-                lt.disableTransitionType(LayoutTransition.CHANGE_APPEARING);
-                lt.disableTransitionType(LayoutTransition.CHANGE_DISAPPEARING);
-            }
-        }
-    }
-
     public void setMenuVisibility(final boolean show) {
         setMenuVisibility(show, false);
     }
@@ -548,6 +527,42 @@ public class NavigationBarView extends BaseNavigationBar {
         if (mSettingsObserver != null) {
             mSettingsObserver.unobserve();
         }
+    }
+
+    @Override
+    public boolean onStartPulse(Animation animatePulseIn) {
+        final View currentNavButtons = getCurrentView().findViewById(R.id.nav_buttons);
+        final View hiddenNavButtons = getHiddenView().findViewById(R.id.nav_buttons);
+
+        // no need to animate the GONE view, but keep alpha inline since onStartPulse
+        // is a oneshot call
+        hiddenNavButtons.setAlpha(PULSE_ALPHA_FADE);
+        currentNavButtons.animate()
+                 .alpha(PULSE_ALPHA_FADE)
+                .setDuration(PULSE_FADE_OUT_DURATION)
+                .setListener(new AnimatorListenerAdapter() {
+                    @Override
+                    public void onAnimationEnd(Animator _a) {
+                        // shouldn't be null, mPulse just called into us
+                        if (mPulse != null) {
+                            mPulse.turnOnPulse();
+                         }
+                    }
+                })
+                .start();
+        return true;
+    }
+
+    @Override
+    public void onStopPulse(Animation animatePulseOut) {
+        final View currentNavButtons = getCurrentView().findViewById(R.id.nav_buttons);
+        final View hiddenNavButtons = getHiddenView().findViewById(R.id.nav_buttons);
+
+        hiddenNavButtons.setAlpha(1.0f);
+        currentNavButtons.animate()
+                .alpha(1.0f)
+                .setDuration(PULSE_FADE_IN_DURATION)
+                .start();
     }
 
     private class SettingsObserver extends ContentObserver {
