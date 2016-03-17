@@ -42,6 +42,8 @@ import android.os.Message;
 import android.os.PowerManager;
 import android.os.RemoteException;
 import android.os.UserHandle;
+import android.os.RemoteException;
+import android.os.UserHandle;
 import android.provider.Settings;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -74,7 +76,7 @@ import com.android.internal.navigation.BaseNavigationBar;
 import com.android.internal.navigation.StatusbarImpl;
 import com.android.internal.navigation.BarTransitions;
 import com.android.systemui.R;
-import com.android.systemui.cm.UserContentObserver;
+import com.android.systemui.du.UserContentObserver;
 import com.android.systemui.statusbar.policy.DeadZone;
 import com.android.systemui.statusbar.policy.KeyButtonView;
 
@@ -197,6 +199,12 @@ public class NavigationBarView extends BaseNavigationBar {
         if (root != null) {
             root.setDrawDuringWindowsAnimating(true);
         }
+    }
+
+    @Override
+    protected void onDetachedFromWindow() {
+        super.onDetachedFromWindow();
+        mSettingsObserver.unobserve();
     }
 
     @Override
